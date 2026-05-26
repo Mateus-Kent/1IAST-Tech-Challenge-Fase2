@@ -1,0 +1,55 @@
+# ── Ambiente Python ───────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+
+# ── Jupyter ───────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.nbconvert/
+
+# ── Dados gerados (camadas do pipeline) ───────────────────────────
+# Ignora o conteúdo das camadas (Parquet, etc.), mas preserva .gitkeep
+layers/bronze/*
+!layers/bronze/.gitkeep
+layers/silver/*
+!layers/silver/.gitkeep
+layers/gold/*
+!layers/gold/.gitkeep
+
+# Amostras locais temporárias
+data/samples/*
+!data/samples/.gitkeep
+
+# ── Variáveis de ambiente e segredos ──────────────────────────────
+.env
+.env.local
+*.env
+
+# ── IDEs ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Sistema operacional ───────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs e relatórios ─────────────────────────────────────────────
+*.log
+logs/
+great_expectations/uncommitted/
+
+# ── Terraform ─────────────────────────────────────────────────────
+infrastructure/terraform/.terraform/
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.backup
+infrastructure/terraform/*.tfvars
