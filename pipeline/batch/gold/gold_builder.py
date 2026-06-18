@@ -80,13 +80,13 @@ def build_ranking_uf(uf_consolidado: pd.DataFrame) -> pd.DataFrame:
     df = (
         uf_consolidado[
             (uf_consolidado["ano"] == 2024) &
-            (uf_consolidado["rede"].isin([2, 3, 5]))
+            (uf_consolidado["rede_x"].isin([2, 3, 5]))
         ]
         .groupby("sigla_uf", as_index=False)
         .agg(
             taxa_alfabetizacao=("taxa_alfabetizacao", "mean"),
             media_portugues=("media_portugues", "mean"),
-            percentual_participacao=("percentual_participacao", "mean"),
+            percentual_participacao=("percentual_participacao_meta", "mean"),
         )
         .sort_values("taxa_alfabetizacao", ascending=False)
         .reset_index(drop=True)
@@ -129,7 +129,7 @@ def build_meta_vs_realizado_uf(uf_consolidado: pd.DataFrame) -> pd.DataFrame:
             meta_2028=("meta_alfabetizacao_2028", "mean"),
             meta_2029=("meta_alfabetizacao_2029", "mean"),
             meta_2030=("meta_alfabetizacao_2030", "mean"),
-            percentual_participacao=("percentual_participacao", "mean"),
+            percentual_participacao=("percentual_participacao_meta", "mean"),
         )
     )
 
