@@ -130,28 +130,37 @@ def process_metas():
 
 def process_consolidacao(s_ind_mun, s_ind_uf, s_meta_mun, s_meta_uf):
     log.info("Realizando Integração (Join) das bases...")
-    
-    # Rename das metas para evitar conflito de colunas no join
-    meta_mun_renamed = s_meta_mun.rename(columns={
-        "taxa_alfabetizacao": "taxa_alfabetizacao_meta_base",
-        "percentual_participacao": "percentual_participacao_meta",
-    })
-    meta_uf_renamed = s_meta_uf.rename(columns={
-        "taxa_alfabetizacao": "taxa_alfabetizacao_meta_base",
-        "percentual_participacao": "percentual_participacao_meta",
-    })
+
+    # rede nas tabelas de meta é inteiramente nulo — drop antes do join para
+    # evitar colunas rede_x/rede_y e manter apenas a rede do indicador.
+    meta_mun_prep = (
+        s_meta_mun
+        .drop(columns=["rede"], errors="ignore")
+        .rename(columns={
+            "taxa_alfabetizacao": "taxa_alfabetizacao_meta_base",
+            "percentual_participacao": "percentual_participacao_meta",
+        })
+    )
+    meta_uf_prep = (
+        s_meta_uf
+        .drop(columns=["rede"], errors="ignore")
+        .rename(columns={
+            "taxa_alfabetizacao": "taxa_alfabetizacao_meta_base",
+            "percentual_participacao": "percentual_participacao_meta",
+        })
+    )
 
     # Join Município
     mun_consolidado = s_ind_mun.merge(
-        meta_mun_renamed,
-        on=["id_municipio", "ano"], # ATENÇÃO: Considere adicionar 'rede' aqui se padronizar a coluna no futuro
+        meta_mun_prep,
+        on=["id_municipio", "ano"],
         how="left",
     )
     validate_quality(mun_consolidado, "municipio_consolidado", ["id_municipio", "ano"])
 
     # Join UF
     uf_consolidado = s_ind_uf.merge(
-        meta_uf_renamed,
+        meta_uf_prep,
         on=["sigla_uf", "ano"],
         how="left",
     )
