@@ -162,12 +162,13 @@ def check_consistency(df: pd.DataFrame, name: str) -> dict:
             log.warning(f"  [Consistência] {name}.{col}: {negativos} valor(es) negativo(s)")
 
         # Heurística: colunas com "pct", "percentual", "meta", "indicador" devem ser 0-100
+        # Só checa > 100 aqui; negativos já foram capturados acima
         col_lower = col.lower()
         if any(k in col_lower for k in ["pct", "percentual", "meta", "indicador", "taxa"]):
-            fora = ((serie < 0) | (serie > 100)).sum()
-            if fora > 0:
-                alertas.append({"coluna": col, "problema": "fora de [0, 100]", "quantidade": int(fora)})
-                log.warning(f"  [Consistência] {name}.{col}: {fora} valor(es) fora do intervalo [0, 100]")
+            acima = (serie > 100).sum()
+            if acima > 0:
+                alertas.append({"coluna": col, "problema": "acima de 100", "quantidade": int(acima)})
+                log.warning(f"  [Consistência] {name}.{col}: {acima} valor(es) acima de 100")
 
     status = "ok" if not alertas else "alerta"
     if status == "ok":

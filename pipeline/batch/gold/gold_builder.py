@@ -6,8 +6,9 @@ analíticos prontos para dashboards, análises estatísticas
 e treinamento de modelos de machine learning.
 
 Datasets gerados:
+- indicador_municipio:   Indicador de alfabetização por município (particionado por ano)
 - ranking_uf:            Ranking de estados por taxa de alfabetização (2024)
-- meta_vs_realizado_uf:  Comparação entre meta e resultado por estado e ano
+- meta_vs_realizado_uf:  Comparação entre meta e resultado por estado e ano (particionado por ano)
 - evolucao_uf:           Evolução da taxa de alfabetização 2023 → 2024
 - painel_nacional:       Visão consolidada nacional por ano e rede
 """
@@ -56,16 +57,79 @@ def load_silver(name: str) -> pd.DataFrame:
     return df
 
 
-def save_gold(df: pd.DataFrame, name: str) -> None:
-    """Salva um dataset analítico em Parquet na camada Gold."""
+def save_gold(df: pd.DataFrame, name: str, partition_cols: list = None) -> None:
+    """Salva dataset analítico em Parquet na camada Gold. Com partition_cols, grava em diretório particionado (FinOps)."""
     GOLD_DIR.mkdir(parents=True, exist_ok=True)
-    path = GOLD_DIR / f"{name}.parquet"
-    df.to_parquet(path, index=False, engine="pyarrow")
-    size_kb = path.stat().st_size / 1024
-    log.info(f"  ✔ Gravado: {name}.parquet ({size_kb:.1f} KB) — {len(df)} registros")
+    if partition_cols:
+        out_path = GOLD_DIR / name
+        # Converte colunas de partição para int nativo (pyarrow não aceita Int64 nullable)
+        df_out = df.copy()
+        for col in partition_cols:
+            if col in df_out.columns:
+                df_out[col] = df_out[col].astype(int)
+        df_out.to_parquet(out_path, index=False, engine="pyarrow", partition_cols=partition_cols)
+        log.info(f"  ✔ Gravado: {name}/ particionado por {partition_cols} — {len(df)} registros")
+    else:
+        path = GOLD_DIR / f"{name}.parquet"
+        df.to_parquet(path, index=False, engine="pyarrow")
+        size_kb = path.stat().st_size / 1024
+        log.info(f"  ✔ Gravado: {name}.parquet ({size_kb:.1f} KB) — {len(df)} registros")
 
 
 # ── Datasets analíticos ───────────────────────────────────────────────────────
+
+def build_indicador_municipio(mun_consolidado: pd.DataFrame) -> pd.DataFrame:
+    """
+    Indicador de alfabetização por município — dataset analítico principal.
+    Agrega por município e ano, compara com meta vigente e classifica desempenho.
+    Particionado por ano para otimização de queries (FinOps).
+    """
+    log.info("Construindo: indicador_municipio")
+
+    df = (
+        mun_consolidado
+        .groupby(["id_municipio", "ano"], as_index=False)
+        .agg(
+            taxa_alfabetizacao=("taxa_alfabetizacao", "mean"),
+            media_portugues=("media_portugues", "mean"),
+            taxa_meta_base=("taxa_alfabetizacao_meta_base", "mean"),
+            meta_2024=("meta_alfabetizacao_2024", "mean"),
+            meta_2025=("meta_alfabetizacao_2025", "mean"),
+            meta_2026=("meta_alfabetizacao_2026", "mean"),
+            meta_2027=("meta_alfabetizacao_2027", "mean"),
+            meta_2028=("meta_alfabetizacao_2028", "mean"),
+            meta_2029=("meta_alfabetizacao_2029", "mean"),
+            meta_2030=("meta_alfabetizacao_2030", "mean"),
+            nivel_alfabetizacao=("nivel_alfabetizacao", "first"),
+            percentual_participacao=("percentual_participacao_meta", "mean"),
+        )
+    )
+
+    df["taxa_alfabetizacao"] = df["taxa_alfabetizacao"].round(2)
+    df["media_portugues"] = df["media_portugues"].round(2)
+
+    # meta_{ano} existe apenas para 2024–2030; anos anteriores ficam como NaN
+    df["meta_ano_vigente"] = df.apply(
+        lambda r: r.get(f"meta_{int(r['ano'])}", None), axis=1
+    )
+    df["diferenca_meta"] = (df["taxa_alfabetizacao"] - df["meta_ano_vigente"]).round(2)
+    df["bateu_meta_2030"] = df["taxa_alfabetizacao"] >= 80.0
+
+    def classificar(row):
+        if pd.isna(row["diferenca_meta"]):
+            return "Sem meta definida"
+        if row["diferenca_meta"] >= 5:
+            return "Acima da meta"
+        if row["diferenca_meta"] >= 0:
+            return "Na meta"
+        if row["diferenca_meta"] >= -5:
+            return "Abaixo da meta"
+        return "Muito abaixo da meta"
+
+    df["classificacao"] = df.apply(classificar, axis=1)
+
+    return df.sort_values(["ano", "id_municipio"]).reset_index(drop=True)
+
 
 def build_ranking_uf(uf_consolidado: pd.DataFrame) -> pd.DataFrame:
     """
@@ -80,7 +144,7 @@ def build_ranking_uf(uf_consolidado: pd.DataFrame) -> pd.DataFrame:
     df = (
         uf_consolidado[
             (uf_consolidado["ano"] == 2024) &
-            (uf_consolidado["rede_x"].isin([2, 3, 5]))
+            (uf_consolidado["rede"].isin([2, 3, 5]))
         ]
         .groupby("sigla_uf", as_index=False)
         .agg(
@@ -133,17 +197,13 @@ def build_meta_vs_realizado_uf(uf_consolidado: pd.DataFrame) -> pd.DataFrame:
         )
     )
 
-    # Diferença entre realizado e meta do ano correspondente
-    def meta_do_ano(row):
-        col = f"meta_{int(row['ano'])}"
-        return row.get(col, None)
-
+    # meta_{ano} existe apenas para 2024–2030; anos anteriores ficam como NaN
     df["meta_ano_vigente"] = df.apply(
         lambda r: r.get(f"meta_{int(r['ano'])}", None), axis=1
     )
     df["diferenca_meta"] = (df["taxa_realizada"] - df["meta_ano_vigente"]).round(2)
     df["pct_atingimento_meta"] = (
-        (df["taxa_realizada"] / df["meta_ano_vigente"]) * 100
+        (df["taxa_realizada"] / df["meta_ano_vigente"].replace(0, pd.NA)) * 100
     ).round(1)
 
     # Classificação do desempenho
@@ -191,7 +251,9 @@ def build_evolucao_uf(uf_consolidado: pd.DataFrame) -> pd.DataFrame:
             lambda v: "Melhorou" if v > 0 else ("Piorou" if v < 0 else "Estável")
         )
 
-    return df_pivot.sort_values("variacao_absoluta", ascending=False).reset_index(drop=True)
+    if "variacao_absoluta" in df_pivot.columns:
+        return df_pivot.sort_values("variacao_absoluta", ascending=False).reset_index(drop=True)
+    return df_pivot.reset_index(drop=True)
 
 
 def build_painel_nacional(
@@ -234,21 +296,24 @@ def run():
 
     # Carrega dados da Silver
     uf_consolidado = load_silver("uf_consolidado")
+    mun_consolidado = load_silver("municipio_consolidado")
     meta_brasil = load_silver("meta_brasil")
 
     resultados = []
 
-    datasets = {
-        "ranking_uf": lambda: build_ranking_uf(uf_consolidado),
-        "meta_vs_realizado_uf": lambda: build_meta_vs_realizado_uf(uf_consolidado),
-        "evolucao_uf": lambda: build_evolucao_uf(uf_consolidado),
-        "painel_nacional": lambda: build_painel_nacional(uf_consolidado, meta_brasil),
-    }
+    # (name, builder, partition_cols)
+    datasets = [
+        ("indicador_municipio",   lambda: build_indicador_municipio(mun_consolidado),                    ["ano"]),
+        ("ranking_uf",            lambda: build_ranking_uf(uf_consolidado),                               None),
+        ("meta_vs_realizado_uf",  lambda: build_meta_vs_realizado_uf(uf_consolidado),                    ["ano"]),
+        ("evolucao_uf",           lambda: build_evolucao_uf(uf_consolidado),                              None),
+        ("painel_nacional",       lambda: build_painel_nacional(uf_consolidado, meta_brasil),             None),
+    ]
 
-    for name, builder in datasets.items():
+    for name, builder, partition_cols in datasets:
         try:
             df = builder()
-            save_gold(df, name)
+            save_gold(df, name, partition_cols=partition_cols)
             resultados.append({"dataset": name, "registros": len(df), "status": "ok"})
         except Exception as e:
             log.error(f"Erro ao construir {name}: {e}")
