@@ -1,3 +1,6 @@
+#Para instalar as libs
+#pip install -r requirement.txt
+
 # Pipeline de dados
 pandas>=2.0.0
 pyarrow>=14.0.0

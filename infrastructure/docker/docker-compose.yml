@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  producer:
+    build:
+      context: ../../  # Aponta para a raiz do projeto nosso
+      dockerfile: infrastructure/docker/Dockerfile
+    container_name: streaming_producer
+    # Comando que o contêiner vai roda pro producer
+    command: python pipeline/streaming/producer/producer.py
+    # Mapeamento de volume: O que o contêiner salvar em /app/data para aparecer no host em ../../data
+    volumes:
+      - ../../data:/app/data
+    #Aqui o volume de mapeamento
+
+  consumer:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile
+    container_name: streaming_consumer
+    command: python pipeline/streaming/consumer/consumer.py
+    volumes:
+      - ../../data:/app/data
+    # Aqui é pra garantir  que o consumidor só inicie depois que o produtor estiver rodando
+    depends_on:
+      - producer
