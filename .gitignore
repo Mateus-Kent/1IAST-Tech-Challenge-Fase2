@@ -27,6 +27,10 @@ layers/gold/*
 data/samples/*
 !data/samples/.gitkeep
 
+# Dados gerados pelo streaming (eventos JSON e processados)
+data/streaming_raw/*
+data/streaming_processed/*
+
 # ── Variáveis de ambiente e segredos ──────────────────────────────
 .env
 .env.local
