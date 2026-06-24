@@ -1,8 +1,14 @@
+import os
 import logging
 from pathlib import Path
 import pandas as pd
+from dotenv import load_dotenv
 
-# Configuração de Log idêntica à da Bronze para manter o padrão
+ROOT = Path(__file__).resolve().parents[3]
+
+load_dotenv(ROOT / ".env.example")
+
+# ── Configuração de logging ──────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -12,8 +18,11 @@ log = logging.getLogger(__name__)
 
 # Configuração de Diretórios
 ROOT = Path(__file__).resolve().parents[3]
-BRONZE_DIR = ROOT / "layers" / "bronze"
-SILVER_DIR = ROOT / "layers" / "silver"
+S3_BRONZE_DIR = "s3://tech-challenge-fase2-fiap-vitor/layers/bronze"
+# S3_BRONZE_DIR = ROOT / "layers" / "bronze"
+S3_SILVER_DIR = "s3://tech-challenge-fase2-fiap-vitor/layers/silver" #Esse é o aws
+# SILVER_DIR = ROOT / "layers" / "silver" esse é o antigo, to começando a usar o S3 direto
+
 
 META_COLS = ["_ingestion_timestamp", "_source_file", "_pipeline_version"]
 
@@ -73,8 +82,8 @@ def validate_quality(df: pd.DataFrame, table_name: str, key_columns: list = None
 
 def process_indicadores():
     log.info("Processando Indicadores...")
-    ind_mun = pd.read_parquet(BRONZE_DIR / "indicador_municipio.parquet")
-    ind_uf = pd.read_parquet(BRONZE_DIR / "indicador_uf.parquet")
+    ind_mun = pd.read_parquet(f"{S3_BRONZE_DIR}/indicador_municipio.parquet")
+    ind_uf = pd.read_parquet(f"{S3_BRONZE_DIR}/indicador_uf.parquet")
 
     nivel_cols = [f"proporcao_aluno_nivel_{i}" for i in range(9)]
     float_cols = ["taxa_alfabetizacao", "media_portugues"] + nivel_cols
@@ -100,9 +109,9 @@ def process_indicadores():
 
 def process_metas():
     log.info("Processando Metas...")
-    meta_br = pd.read_parquet(BRONZE_DIR / "meta_brasil.parquet")
-    meta_mun = pd.read_parquet(BRONZE_DIR / "meta_municipio.parquet")
-    meta_uf = pd.read_parquet(BRONZE_DIR / "meta_uf.parquet")
+    meta_br = pd.read_parquet(f"{S3_BRONZE_DIR}/meta_brasil.parquet")
+    meta_mun = pd.read_parquet(f"{S3_BRONZE_DIR}/meta_municipio.parquet")
+    meta_uf = pd.read_parquet(f"{S3_BRONZE_DIR}/meta_uf.parquet")
 
     s_meta_br = (
         meta_br.pipe(drop_meta)
@@ -169,13 +178,25 @@ def process_consolidacao(s_ind_mun, s_ind_uf, s_meta_mun, s_meta_uf):
     return mun_consolidado, uf_consolidado
 
 
+# antigo sem aws
+# def save_silver(df_dict):
+#     SILVER_DIR.mkdir(parents=True, exist_ok=True)
+#     for name, df in df_dict.items():
+#         path = SILVER_DIR / f"{name}.parquet"
+#         df.to_parquet(path, index=False, engine="pyarrow")
+#         size_kb = path.stat().st_size / 1024
+#         log.info(f"  ✔ Gravado: {name}.parquet ({size_kb:.1f} KB) — {df.shape[0]} registros")
+
 def save_silver(df_dict):
-    SILVER_DIR.mkdir(parents=True, exist_ok=True)
+    log.info("Iniciando upload para a AWS S3...")
     for name, df in df_dict.items():
-        path = SILVER_DIR / f"{name}.parquet"
+        # Monta o caminho exato do bucket
+        path = f"{S3_SILVER_DIR}/{name}.parquet"
+        
+        # O Pandas usa o s3fs e as chaves do .env para fazer o upload na hora
         df.to_parquet(path, index=False, engine="pyarrow")
-        size_kb = path.stat().st_size / 1024
-        log.info(f"  ✔ Gravado: {name}.parquet ({size_kb:.1f} KB) — {df.shape[0]} registros")
+        
+        log.info(f"  ✔ Gravado na AWS: {name}.parquet — {df.shape[0]} registros")
 
 
 def run():

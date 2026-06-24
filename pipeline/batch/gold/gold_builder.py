@@ -18,6 +18,14 @@ from pathlib import Path
 
 import pandas as pd
 
+from dotenv import load_dotenv
+
+ROOT = Path(__file__).resolve().parents[3]
+
+
+load_dotenv(ROOT / ".env.example")
+
+
 # ── Configuração de logging ──────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -28,8 +36,12 @@ log = logging.getLogger(__name__)
 
 # ── Caminhos ─────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parents[3]
-SILVER_DIR = ROOT / "layers" / "silver"
-GOLD_DIR = ROOT / "layers" / "gold"
+# SILVER_DIR = ROOT / "layers" / "silver"
+S3_SILVER_DIR = "s3://tech-challenge-fase2-fiap-vitor/layers/silver"
+
+# GOLD_DIR = ROOT / "layers" / "gold"
+S3_GOLD_DIR = "s3://tech-challenge-fase2-fiap-vitor/layers/gold"
+
 
 # Mapeamento de códigos de rede para descrição legível
 REDE_MAP = {
@@ -45,35 +57,34 @@ REDE_MAP = {
 # ── Funções auxiliares ────────────────────────────────────────────────────────
 
 def load_silver(name: str) -> pd.DataFrame:
-    """Carrega um arquivo Parquet da camada Silver."""
-    path = SILVER_DIR / f"{name}.parquet"
-    if not path.exists():
+    """Carrega um arquivo Parquet da camada Silver no S3."""
+    path = f"{S3_SILVER_DIR}/{name}.parquet"
+    try:
+        df = pd.read_parquet(path)
+    except (FileNotFoundError, OSError) as e:
         raise FileNotFoundError(
             f"Arquivo Silver não encontrado: {path}\n"
             "Execute o silver_loader.py antes de rodar o gold_builder.py"
-        )
-    df = pd.read_parquet(path)
+        ) from e
     log.info(f"Carregado: {name}.parquet — {len(df)} linhas")
     return df
 
 
 def save_gold(df: pd.DataFrame, name: str, partition_cols: list = None) -> None:
-    """Salva dataset analítico em Parquet na camada Gold. Com partition_cols, grava em diretório particionado (FinOps)."""
-    GOLD_DIR.mkdir(parents=True, exist_ok=True)
+    """Salva dataset analítico em Parquet na camada Gold (S3). Com partition_cols, grava dataset particionado (FinOps)."""
     if partition_cols:
-        out_path = GOLD_DIR / name
+        out_path = f"{S3_GOLD_DIR}/{name}"
         # Converte colunas de partição para int nativo (pyarrow não aceita Int64 nullable)
         df_out = df.copy()
         for col in partition_cols:
             if col in df_out.columns:
                 df_out[col] = df_out[col].astype(int)
         df_out.to_parquet(out_path, index=False, engine="pyarrow", partition_cols=partition_cols)
-        log.info(f"  ✔ Gravado: {name}/ particionado por {partition_cols} — {len(df)} registros")
+        log.info(f"  ✔ Gravado na AWS: {name}/ particionado por {partition_cols} — {len(df)} registros")
     else:
-        path = GOLD_DIR / f"{name}.parquet"
+        path = f"{S3_GOLD_DIR}/{name}.parquet"
         df.to_parquet(path, index=False, engine="pyarrow")
-        size_kb = path.stat().st_size / 1024
-        log.info(f"  ✔ Gravado: {name}.parquet ({size_kb:.1f} KB) — {len(df)} registros")
+        log.info(f"  ✔ Gravado na AWS: {name}.parquet — {len(df)} registros")
 
 
 # ── Datasets analíticos ───────────────────────────────────────────────────────

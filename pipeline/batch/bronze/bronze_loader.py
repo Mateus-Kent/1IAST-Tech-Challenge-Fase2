@@ -1,6 +1,13 @@
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
+from dotenv import load_dotenv
+
+ROOT = Path(__file__).resolve().parents[3]
+
+load_dotenv(ROOT / ".env.example")
+
+S3_BRONZE_DIR = "s3://tech-challenge-fase2-fiap-vitor/layers/bronze"
 
 import pandas as pd
 
@@ -34,35 +41,58 @@ def add_metadata(df: pd.DataFrame, source_file: str) -> pd.DataFrame:
     return df
 
 
+##Antigo sem aws
+# def ingest_source(name: str, filename: str) -> dict:
+#     csv_path = RAW_DIR / filename
+#     parquet_path = BRONZE_DIR / f"{name}.parquet"
+
+#     log.info(f"Iniciando ingestão: {name} ← {filename}")
+
+#     # dtype=str preserva valores brutos; conversões acontecem na Silver
+#     df = pd.read_csv(csv_path, dtype=str)
+#     rows_raw = len(df)
+#     log.info(f"  Lidas {rows_raw} linhas de {filename}")
+
+#     df = add_metadata(df, source_file=filename)
+
+#     BRONZE_DIR.mkdir(parents=True, exist_ok=True)
+#     df.to_parquet(parquet_path, index=False, engine="pyarrow")
+
+#     size_kb = parquet_path.stat().st_size / 1024
+#     log.info(f"  Gravado: {parquet_path.name} ({size_kb:.1f} KB) — {rows_raw} registros")
+
+#     return {
+#         "fonte": name,
+#         "arquivo_csv": filename,
+#         "arquivo_parquet": parquet_path.name,
+#         "registros": rows_raw,
+#         "colunas": list(df.columns),
+#         "tamanho_kb": round(size_kb, 1),
+#         "status": "ok",
+#     }
+
 def ingest_source(name: str, filename: str) -> dict:
     csv_path = RAW_DIR / filename
-    parquet_path = BRONZE_DIR / f"{name}.parquet"
+    parquet_path = f"{S3_BRONZE_DIR}/{name}.parquet" # Caminho S3
 
     log.info(f"Iniciando ingestão: {name} ← {filename}")
-
-    # dtype=str preserva valores brutos; conversões acontecem na Silver
     df = pd.read_csv(csv_path, dtype=str)
     rows_raw = len(df)
-    log.info(f"  Lidas {rows_raw} linhas de {filename}")
 
     df = add_metadata(df, source_file=filename)
 
-    BRONZE_DIR.mkdir(parents=True, exist_ok=True)
+    # Salva direto na nuvem!
     df.to_parquet(parquet_path, index=False, engine="pyarrow")
+    log.info(f"  ✔ Gravado na AWS: {name}.parquet — {rows_raw} registros")
 
-    size_kb = parquet_path.stat().st_size / 1024
-    log.info(f"  Gravado: {parquet_path.name} ({size_kb:.1f} KB) — {rows_raw} registros")
-
+    # Como tiramos o tamanho_kb, ajuste o return para evitar erro:
     return {
         "fonte": name,
         "arquivo_csv": filename,
-        "arquivo_parquet": parquet_path.name,
+        "arquivo_parquet": f"{name}.parquet",
         "registros": rows_raw,
-        "colunas": list(df.columns),
-        "tamanho_kb": round(size_kb, 1),
         "status": "ok",
     }
-
 
 def run():
     log.info("=" * 60)
@@ -89,14 +119,14 @@ def run():
     total_registros = 0
     for r in resultados:
         if r["status"] == "ok":
-            log.info(f"  ✔ {r['fonte']:<22} {r['registros']:>6} registros  ({r['tamanho_kb']} KB)")
+            log.info(f"  ✔ {r['fonte']:<22} {r['registros']:>6} registros")
             total_registros += r["registros"]
         else:
             log.warning(f"  ✘ {r['fonte']:<22} {r['status']}")
 
     log.info("-" * 60)
     log.info(f"  Total ingerido: {total_registros} registros")
-    log.info(f"  Destino:        {BRONZE_DIR}")
+    log.info(f"  Destino:        {S3_BRONZE_DIR}")
     log.info("=" * 60)
 
     return resultados
