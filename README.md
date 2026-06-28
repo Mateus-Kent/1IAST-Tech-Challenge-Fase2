@@ -4,11 +4,23 @@
 
 ---
 
+## 👥 Equipe
+
+Projeto desenvolvido para o **Tech Challenge – Fase 2 da PosTech FIAP**
+
+* **Gabriela de Lima Lopes** (RM372467) ➔ [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/gabrieladelimalopes/)
+* **Pedro Henrique Gomes** (RM372427) ➔ [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/pedrogomes95/)
+* **Vitor Lopes Rodrigues** (RM372427) ➔ [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/vitor-lopes-rodrigues/)
+* **Lucas Oliveira dos Santos Lima** (RM372651) ➔ [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/lucasoslima/)
+* **Mateus Quintino Vieira dos Santos** (RM371795) ➔ [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/mateusqsantos/)
+
+---
+
 ## 📌 Contexto do Problema
 
 A alfabetização na infância é um dos pilares fundamentais para o desenvolvimento educacional, social e econômico do país. O **Compromisso Nacional Criança Alfabetizada** é uma política pública que mobiliza União, estados e municípios com o objetivo de garantir que **todas as crianças brasileiras estejam alfabetizadas até o final do 2º ano do ensino fundamental**.
 
-O INEP definiu o **ponto de corte de 743 pontos** na escala de proficiência do SAEB como referência para considerar uma criança alfabetizada. Com base nisso, criou-se o **Indicador Criança Alfabetizada** — o percentual de estudantes que atingem esse nível. A **meta nacional é 100% até 2030**.
+O INEP definiu o **ponto de corte de 743 pontos** na escala de proficiência do SAEB como referência para considerar uma criança alfabetizada. Com base nisso, criou-se o **Indicador Criança Alfabetizada** — o percentual de estudantes que atingem esse nível. A **meta nacional é 80% até 2030**.
 
 Este projeto constrói uma **pipeline híbrida de dados (Batch + Streaming)** para integrar, tratar e disponibilizar esses dados educacionais para análises, dashboards e modelos de machine learning.
 
@@ -21,15 +33,15 @@ Este projeto constrói uma **pipeline híbrida de dados (Batch + Streaming)** pa
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                        FONTES DE DADOS                               │
-│  Base dos Dados (INEP) │ Censo Escolar │ IBGE │ FUNDEB              │
+│         Base dos Dados (INEP) — Indicador Criança Alfabetizada       │
 └────────────┬─────────────────────────────────────────────────────────┘
              │
      ┌───────┴────────┐
      │  INGESTÃO      │
      │  HÍBRIDA       │
      ├────────────────┤
-     │  Batch         │  → Dados históricos (CSVs, APIs)
-     │  Streaming     │  → Eventos simulados (Kafka/Kinesis)
+     │  Batch         │  → Dados históricos (CSVs)
+     │  Streaming     │  → Eventos simulados (JSON)
      └───────┬────────┘
              │
 ┌────────────▼──────────────────────────────────────────────────────┐
@@ -38,7 +50,7 @@ Este projeto constrói uma **pipeline híbrida de dados (Batch + Streaming)** pa
 │  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────┐  │
 │  │   🥉 BRONZE  │ → │   🥈 SILVER  │ → │      🥇 GOLD         │  │
 │  │  Dados Brutos│   │ Dados Tratados│   │  Camada Analítica    │  │
-│  │  (Raw/Parquet)│   │ (Limpos/Join)│   │ (Pronto p/ consumo)  │  │
+│  │  (Raw/Parquet)│  │ (Limpos/Join)│   │ (Pronto p/ consumo)  │  │
 │  └──────────────┘   └──────────────┘   └──────────────────────┘  │
 └────────────────────────────────────────────────────────────────────┘
              │
@@ -53,15 +65,12 @@ Este projeto constrói uma **pipeline híbrida de dados (Batch + Streaming)** pa
 | Camada | Tecnologia | Justificativa |
 |---|---|---|
 | **Orquestração Batch** | Apache Airflow | Agendamento, retry automático, observabilidade |
-| **Processamento** | Python + PySpark | Flexível, escalável para grandes volumes |
-| **Streaming** | Apache Kafka + Kafka Streams | Baixa latência, tolerância a falhas |
-| **Armazenamento** | AWS S3 (Parquet + particionado) | Custo baixo, integração nativa com AWS |
-| **Catálogo de Dados** | AWS Glue Data Catalog | Governança, schema discovery automático |
-| **Query Engine** | AWS Athena | SQL serverless sobre S3, paga por query |
-| **Qualidade de Dados** | Great Expectations | Validação declarativa, relatórios automáticos |
+| **Processamento** | Python + Pandas | Flexível, suficiente para o volume atual |
+| **Streaming** | Simulação via arquivos JSON | Simula eventos de atualização de indicadores |
+| **Armazenamento** | AWS S3 (Parquet) | Custo baixo, integração nativa com AWS |
 | **IaC** | Terraform | Infraestrutura como código, reprodutível |
 | **Containerização** | Docker + Docker Compose | Ambiente local idêntico à produção |
-| **Monitoramento** | CloudWatch + Grafana | Alertas, dashboards operacionais |
+| **Qualidade de Dados** | Python (quality_checker.py) | Validação customizada de duplicatas, nulos e relacionamentos |
 
 ---
 
@@ -71,74 +80,62 @@ Este projeto constrói uma **pipeline híbrida de dados (Batch + Streaming)** pa
 1IAST-Tech-Challenge-Fase2/
 │
 ├── 📂 data/
-│   ├── raw/                          # CSVs originais baixados do Base dos Dados
+│   ├── raw/                          # CSVs originais do Base dos Dados
 │   │   ├── meta_alfabetizacao_brasil.csv
 │   │   ├── meta_alfabetizacao_municipio.csv
 │   │   ├── meta_alfabetizacao_uf.csv
 │   │   ├── indicador_municipio.csv
 │   │   └── indicador_uf.csv
-│   └── samples/                      # Amostras reduzidas para testes locais
+│   ├── streaming_raw/                # Eventos JSON gerados pelo producer
+│   └── streaming_processed/         # Eventos processados pelo consumer
 │
 ├── 📂 pipeline/
 │   ├── batch/
-│   │   ├── ingestion/                # Scripts de ingestão batch das fontes
-│   │   │   └── ingest_base_dados.py  # Lê CSVs → salva Bronze (Parquet)
-│   │   ├── bronze/                   # Transformações Bronze → raw Parquet
-│   │   │   └── bronze_loader.py
-│   │   ├── silver/                   # Transformações Silver (limpeza + join)
-│   │   │   └── silver_transformer.py
-│   │   └── gold/                     # Transformações Gold (datasets analíticos)
-│   │       └── gold_builder.py
-│   └── streaming/
-│       ├── producer/                 # Simulação de eventos em tempo real
-│       │   └── event_producer.py     # Publica atualizações de indicadores
-│       └── consumer/                 # Consome e processa eventos Kafka
-│           └── event_consumer.py
+│   │   ├── bronze/
+│   │   │   └── bronze_loader.py      # Lê CSVs → salva Parquet na Bronze
+│   │   ├── silver/
+│   │   │   └── silver_loader.py      # Limpeza, tipagem e join das bases
+│   │   └── gold/
+│   │       └── gold_builder.py       # Gera datasets analíticos
+│   ├── streaming/
+│   │   ├── producer/
+│   │   │   └── producer.py           # Simula eventos de atualização
+│   │   └── consumer/
+│   │       └── consumer.py           # Processa eventos JSON
+│   └── dags/
+│       └── pipeline_alfabetizacao.py # DAG Airflow — orquestra Bronze→Silver→Gold→Quality
 │
-├── 📂 layers/                        # Simulação local das camadas (dev/test)
-│   ├── bronze/                       # Parquet particionado por ano/uf
+├── 📂 layers/                        # Camadas locais geradas pelo pipeline
+│   ├── bronze/                       # Parquet bruto
 │   ├── silver/                       # Parquet limpo e integrado
-│   └── gold/                         # Parquet analítico pronto para consumo
+│   └── gold/                         # Parquet analítico
 │
 ├── 📂 validation/
 │   └── quality_checks/
-│       ├── expectations/             # Regras Great Expectations (YAML/JSON)
-│       └── run_quality_checks.py     # Executa validações e gera relatório
-│
-├── 📂 monitoring/
-│   └── alerts/
-│       ├── cloudwatch_alarms.tf      # Alarmes AWS CloudWatch via Terraform
-│       └── pipeline_metrics.py       # Coleta e publica métricas customizadas
+│       └── quality_checker.py        # Valida duplicatas, nulos, consistência e relacionamentos
 │
 ├── 📂 infrastructure/
 │   ├── terraform/
-│   │   ├── main.tf                   # Recursos principais (S3, Glue, Athena)
-│   │   ├── variables.tf
-│   │   ├── outputs.tf
-│   │   └── modules/
-│   │       ├── s3/                   # Buckets Bronze/Silver/Gold
-│   │       ├── glue/                 # Crawlers e Jobs
-│   │       ├── kinesis/              # Streams para ingestão streaming
-│   │       └── msk/                  # Amazon MSK (Kafka gerenciado)
+│   │   └── main.tf                   # Cria bucket S3 e estrutura de pastas na AWS
 │   └── docker/
 │       ├── Dockerfile
-│       └── docker-compose.yml        # Airflow + Kafka + Zookeeper local
+│       └── docker-compose.yml
+│
+├── 📂 notebooks/
+│   ├── 01_eda.ipynb                  # Análise exploratória dos dados brutos
+│   ├── 02_bronze_demo.ipynb          # Demonstração da camada Bronze
+│   └── 03_gold_analise.ipynb         # Visualizações dos datasets Gold
 │
 ├── 📂 docs/
 │   ├── architecture/
-│   │   └── decisions.md              # ADRs – Architecture Decision Records
 │   └── diagrams/
-│       └── pipeline_diagram.png      # Diagrama visual da pipeline
 │
 ├── 📂 tests/
-│   ├── test_bronze.py
-│   ├── test_silver.py
-│   └── test_gold.py
 │
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
-└── README.md                         # Este arquivo
+└── README.md
 ```
 
 ---
@@ -148,81 +145,104 @@ Este projeto constrói uma **pipeline híbrida de dados (Batch + Streaming)** pa
 ### 1. Ingestão Batch (Dados Históricos)
 
 ```
-Base dos Dados (CSV/API)
-        │
-        ▼
-ingest_base_dados.py
-  - Lê CSVs locais ou via API BigQuery
-  - Adiciona metadados: ingestion_timestamp, source_file, pipeline_version
-        │
-        ▼
-Bronze Layer (S3: s3://alfabetizacao-datalake/bronze/)
+CSVs (data/raw/)
+      │
+      ▼
+bronze_loader.py
+  - Lê os 5 CSVs do INEP
+  - Adiciona metadados: _ingestion_timestamp, _source_file, _pipeline_version
+  - Preserva dados brutos sem transformações
+      │
+      ▼
+Bronze Layer (layers/bronze/ ou S3: s3://tech-challenge-fase2/bronze/)
   - Formato: Parquet
-  - Particionamento: ano=XXXX/uf=XX/
-  - Sem transformações — dados brutos preservados
+  - 34.901 registros processados
 ```
 
 ### 2. Ingestão Streaming (Eventos Simulados)
 
 ```
-event_producer.py
-  - Simula atualizações de indicadores (novos resultados SAEB)
-  - Publica mensagens JSON no tópico Kafka: indicadores-alfabetizacao
-        │
-        ▼
-Apache Kafka (MSK / local Docker)
-        │
-        ▼
-event_consumer.py
-  - Consome eventos do tópico
-  - Valida schema, aplica transformações
-  - Escreve micro-batches na Bronze Layer
+producer.py
+  - Lê IDs reais de municípios do CSV
+  - Gera eventos fictícios a cada 2-5 segundos
+  - Tipos: nova_medicao_desempenho | atualizacao_meta
+  - Salva cada evento como arquivo JSON em data/streaming_raw/
+      │
+      ▼
+consumer.py
+  - Monitora data/streaming_raw/ a cada 3 segundos
+  - Processa cada evento JSON
+  - Move arquivos processados para data/streaming_processed/
 ```
 
 ### 3. Processamento Silver
 
 ```
-silver_transformer.py (Airflow DAG: daily)
+silver_loader.py (Airflow DAG: daily)
   - Lê da Bronze Layer
-  - Limpeza: remove duplicatas, trata nulos, padroniza tipos
-  - JOIN das bases: indicador_municipio + meta_municipio + dados_uf
-  - Normaliza chaves: id_municipio (7 dígitos), sigla_uf (2 chars uppercase)
-  - Valida consistência: taxa_alfabetizacao ∈ [0, 100]
-        │
-        ▼
-Silver Layer (S3: s3://alfabetizacao-datalake/silver/)
-  - Formato: Parquet (compressão Snappy)
-  - Particionamento: ano=XXXX/
+  - Remove colunas de metadados de ingestão
+  - Converte tipos: cast para float64 e Int64
+  - Validação Fail Fast: duplicatas e chaves nulas abortam o pipeline
+  - JOIN: indicador_uf + meta_uf → uf_consolidado
+  - JOIN: indicador_municipio + meta_municipio → municipio_consolidado
+      │
+      ▼
+Silver Layer (layers/silver/)
+  - 7 arquivos Parquet gerados
 ```
 
 ### 4. Camada Gold (Analítica)
 
 ```
 gold_builder.py (Airflow DAG: após Silver)
-  - Cria datasets temáticos prontos para consumo:
-    ├── gold_indicador_por_municipio    → ranking e evolução por município
-    ├── gold_comparacao_meta_resultado  → % atingimento das metas 2024–2030
-    └── gold_evolucao_temporal          → série histórica nacional e por UF
-        │
-        ▼
-Gold Layer (S3: s3://alfabetizacao-datalake/gold/)
-  - Formato: Parquet (otimizado para Athena)
-  - Consumido por: dashboards, modelos ML, relatórios
+  - ranking_uf:           Ranking dos 27 estados por taxa de alfabetização (2024)
+  - meta_vs_realizado_uf: Comparação meta vs realizado com classificação de desempenho
+  - evolucao_uf:          Variação 2023 → 2024 por estado (quem melhorou/piorou)
+  - painel_nacional:      Visão consolidada nacional por ano
+      │
+      ▼
+Gold Layer (layers/gold/)
+  - 4 datasets prontos para dashboards, análises e modelos de ML
 ```
+
+### 5. Orquestração (Airflow DAG)
+
+```
+bronze_ingestion → silver_transform → gold_build → quality_check
+```
+
+O DAG executa diariamente com retry automático (2 tentativas, intervalo de 5 min).
+Se o quality_check detectar erros críticos, o pipeline é abortado e alertado.
 
 ---
 
 ## ✅ Qualidade de Dados
 
-| Regra | Implementação |
-|---|---|
-| Sem duplicatas | `DROP DUPLICATES` por chave composta (ano + id_municipio + rede) |
-| Valores ausentes | Imputa media da UF ou flag `dados_ausentes=True` |
-| Chaves válidas | Valida `id_municipio` contra tabela IBGE de municípios |
-| Consistência | Taxa ∈ [0,100]; ano ∈ [2019, ano_atual] |
-| Integridade referencial | Todo município na tabela de metas existe na tabela de indicadores |
+O `quality_checker.py` realiza 4 tipos de verificação nos dados da camada Bronze:
 
-Ferramenta: **Great Expectations** — gera data docs HTML automáticos a cada execução.
+| Verificação | Descrição | Comportamento |
+|---|---|---|
+| **Duplicatas** | Detecta registros repetidos | Alerta se encontrar duplicatas |
+| **Valores nulos** | Verifica % de nulos por coluna | Alerta se coluna > 20% nulos |
+| **Consistência** | Verifica negativos e percentuais fora de [0,100] | Alerta por coluna |
+| **Relacionamentos** | Valida integridade referencial entre tabelas | Alerta se encontrar órfãos |
+
+**Resultado da última execução:**
+- ✔ 14 verificações OK
+- ⚠ 3 alertas (nulos esperados em 2023 — dados de nível só existem em 2024)
+- ✘ 0 erros críticos
+
+---
+
+## 💡 Insights dos Dados
+
+Alguns achados relevantes identificados na camada Gold:
+
+- **CE** tem a maior taxa de alfabetização (85%) e já superou a meta de 2030
+- **SE** e **BA** têm as menores taxas (~35-38%), muito abaixo da meta
+- **RS** teve queda significativa em 2024 comparado a 2023
+- **RR** (Roraima) não possui dados — ausência total de registros
+- Dados de distribuição por nível de proficiência só existem para 2024
 
 ---
 
@@ -230,12 +250,11 @@ Ferramenta: **Great Expectations** — gera data docs HTML automáticos a cada e
 
 | Prática | Impacto |
 |---|---|
-| **Parquet + Snappy** | Reduz armazenamento S3 em ~75% vs CSV |
-| **Particionamento por ano/uf** | Athena escaneia apenas partições relevantes (paga por TB lido) |
+| **Parquet vs CSV** | Reduz armazenamento S3 em ~75% |
+| **Particionamento** | Athena escaneia apenas partições relevantes |
 | **S3 Intelligent-Tiering** | Move dados frios automaticamente para camadas mais baratas |
-| **Athena vs Redshift** | Serverless: paga apenas por query executada, sem cluster 24/7 |
-| **Spot Instances (EMR)** | Reduz custo de processamento Spark em até 70% |
-| **Airflow no Fargate** | Sem EC2 ocioso; escala a zero quando não há DAGs rodando |
+| **Athena serverless** | Paga apenas por query executada, sem cluster 24/7 |
+| **Airflow no Docker** | Sem infraestrutura ociosa em ambiente local |
 
 ### Estimativa de Custo Mensal (AWS)
 
@@ -243,66 +262,8 @@ Ferramenta: **Great Expectations** — gera data docs HTML automáticos a cada e
 |---|---|
 | S3 (50 GB) | ~$1,15 |
 | Athena (100 GB scanned/mês) | ~$5,00 |
-| MSK Serverless (Kafka) | ~$20,00 |
-| MWAA (Airflow) / ECS Fargate | ~$30,00 |
 | CloudWatch Logs + Métricas | ~$5,00 |
-| **Total estimado** | **~$61/mês** |
-
----
-
-## 🔭 Monitoramento
-
-- **Falhas de ingestão:** Alerta CloudWatch se DAG falhar 2x seguidas
-- **Latência:** Métrica customizada `pipeline_duration_seconds` por camada
-- **Volume:** Alerta se Bronze receber 0 registros em execução programada
-- **Qualidade:** Great Expectations falha o DAG se regras críticas não passarem
-
----
-
-## 🤖 Aplicação em IA (Camada Gold)
-
-A camada Gold está preparada para:
-
-| Caso de Uso | Descrição |
-|---|---|
-| **Predição de alfabetização** | Features: IDH municipal, infraestrutura escolar, % docentes formados → target: taxa_alfabetizacao |
-| **Clustering de vulnerabilidade** | Agrupa municípios por perfil educacional para priorização de políticas |
-| **Análise de desigualdade** | Compara gap entre regiões, redes pública/privada, evolução temporal |
-| **Simulação de metas** | Projeta probabilidade de atingir meta 2030 dado o ritmo atual |
-
----
-
-## 🚀 Como Executar (Local)
-
-```bash
-# 1. Clone o repositório
-git clone <repo-url>
-cd 1IAST-Tech-Challenge-Fase2
-
-# 2. Configure variáveis de ambiente
-cp .env.example .env
-# edite .env com suas credenciais AWS
-
-# 3. Suba a infraestrutura local (Kafka + Airflow)
-docker-compose -f infrastructure/docker/docker-compose.yml up -d
-
-# 4. Instale dependências Python
-pip install -r requirements.txt
-
-# 5. Execute ingestão batch manual
-python pipeline/batch/ingestion/ingest_base_dados.py
-
-# 6. Execute as transformações em sequência
-python pipeline/batch/bronze/bronze_loader.py
-python pipeline/batch/silver/silver_transformer.py
-python pipeline/batch/gold/gold_builder.py
-
-# 7. Valide qualidade dos dados
-python validation/quality_checks/run_quality_checks.py
-
-# 8. Inicie o producer de streaming (simulação)
-python pipeline/streaming/producer/event_producer.py
-```
+| **Total estimado** | **~$11/mês** |
 
 ---
 
@@ -310,17 +271,78 @@ python pipeline/streaming/producer/event_producer.py
 
 | Trade-off | Decisão | Justificativa |
 |---|---|---|
-| **Batch vs Streaming** | Híbrido | Dados históricos = batch; atualizações SAEB = streaming |
-| **Data Lake vs DWH** | Data Lake (S3) + Athena | Menor custo, maior flexibilidade para ML |
-| **Parquet vs Delta Lake** | Parquet (v1) → Delta Lake (roadmap) | Simplicidade inicial; Delta para ACID no futuro |
+| **Batch vs Streaming** | Híbrido | Dados históricos = batch; atualizações = streaming simulado |
+| **Data Lake vs DWH** | Data Lake (S3) + Parquet | Menor custo, maior flexibilidade para ML |
+| **Kafka vs JSON local** | JSON local (simulação) | Simplicidade para o escopo do projeto; Kafka seria o próximo passo |
+| **Great Expectations vs Python** | Python customizado | Sem dependência externa, mais controle sobre as validações |
 | **Airflow vs Step Functions** | Airflow | Familiar ao time, open-source, portável |
-| **AWS vs GCP** | AWS | Maior maturidade em dados, MSK para Kafka gerenciado |
+| **AWS vs GCP vs Azure** | AWS | Maior maturidade em dados, S3 como data lake |
 
 ---
 
-## 👥 Equipe
+## 🔭 Monitoramento
 
-Projeto desenvolvido para o **Tech Challenge – Fase 2 da PosTech FIAP**
+- **Falhas de ingestão:** Alerta se DAG falhar 2x seguidas
+- **Latência:** Métrica por camada do pipeline
+- **Volume:** Alerta se Bronze receber 0 registros em execução programada
+- **Qualidade:** Quality checker falha o DAG se regras críticas não passarem
+
+---
+
+## 🤖 Aplicação em IA (Camada Gold)
+
+A camada Gold está preparada para alimentar modelos de machine learning:
+
+| Caso de Uso | Descrição |
+|---|---|
+| **Predição de alfabetização** | Usar taxa histórica + variáveis socioeconômicas para prever desempenho futuro por município |
+| **Clustering de vulnerabilidade** | Agrupar municípios por perfil educacional para priorização de políticas públicas |
+| **Análise de desigualdade** | Comparar gap entre regiões, redes pública/privada e evolução temporal |
+| **Simulação de metas** | Projetar probabilidade de atingir meta 2030 dado o ritmo atual de cada estado |
+
+---
+
+## 🚀 Como Executar (Local)
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/Mateus-Kent/1IAST-Tech-Challenge-Fase2.git
+cd 1IAST-Tech-Challenge-Fase2
+
+# 2. Instale dependências Python
+pip install -r requirements.txt
+
+# 3. Execute o pipeline batch em sequência
+python pipeline/batch/bronze/bronze_loader.py
+python pipeline/batch/silver/silver_loader.py
+python pipeline/batch/gold/gold_builder.py
+
+# 4. Valide qualidade dos dados
+python validation/quality_checks/quality_checker.py
+
+# 5. (Opcional) Inicie o streaming simulado em dois terminais separados
+python pipeline/streaming/producer/producer.py
+python pipeline/streaming/consumer/consumer.py
+```
+
+### Executar com Docker
+
+```bash
+docker-compose -f infrastructure/docker/docker-compose.yml up -d
+```
+
+### Executar na AWS
+
+```bash
+# Configure credenciais AWS
+aws configure
+
+# Provisione infraestrutura com Terraform
+cd infrastructure/terraform
+terraform init
+terraform plan
+terraform apply
+```
 
 ---
 
