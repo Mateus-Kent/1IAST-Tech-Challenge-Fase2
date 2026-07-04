@@ -127,7 +127,6 @@ Este projeto constrói uma **pipeline híbrida de dados (Batch + Streaming)** pa
 │   └── 03_gold_analise.ipynb         # Visualizações dos datasets Gold
 │
 ├── 📂 docs/
-│   ├── architecture/
 │   └── diagrams/
 │
 ├── 📂 tests/
