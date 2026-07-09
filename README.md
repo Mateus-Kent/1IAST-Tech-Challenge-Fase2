@@ -326,18 +326,7 @@ python pipeline/streaming/consumer/consumer.py
 docker-compose -f infrastructure/docker/docker-compose.yml up -d
 ```
 
-### Executar na AWS
 
-```bash
-# Configure credenciais AWS
-aws configure
-
-# Provisione infraestrutura com Terraform
-cd infrastructure/terraform
-terraform init
-terraform plan
-terraform apply
-```
 
 ---
 
