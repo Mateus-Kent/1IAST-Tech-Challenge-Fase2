@@ -319,7 +319,7 @@ python pipeline/streaming/producer/producer.py
 python pipeline/streaming/consumer/consumer.py
 ```
 
-### Executar com Docker
+### Executar com Docker (só está com producer e consumer)
 
 ```bash
 docker-compose -f infrastructure/docker/docker-compose.yml up -d
