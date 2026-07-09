@@ -9,7 +9,6 @@
 Projeto desenvolvido para o **Tech Challenge – Fase 2 da PosTech FIAP**
 
 * **Gabriela de Lima Lopes** (RM372467) ➔ [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/gabrieladelimalopes/)
-* **Pedro Henrique Gomes** (RM372427) ➔ [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/pedrogomes95/)
 * **Vitor Lopes Rodrigues** (RM372427) ➔ [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/vitor-lopes-rodrigues/)
 * **Lucas Oliveira dos Santos Lima** (RM372651) ➔ [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/lucasoslima/)
 * **Mateus Quintino Vieira dos Santos** (RM371795) ➔ [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/mateusqsantos/)
