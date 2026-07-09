@@ -64,11 +64,8 @@ Este projeto constrói uma **pipeline híbrida de dados (Batch + Streaming)** pa
 
 | Camada | Tecnologia | Justificativa |
 |---|---|---|
-| **Orquestração Batch** | Apache Airflow | Agendamento, retry automático, observabilidade |
 | **Processamento** | Python + Pandas | Flexível, suficiente para o volume atual |
 | **Streaming** | Simulação via arquivos JSON | Simula eventos de atualização de indicadores |
-| **Armazenamento** | AWS S3 (Parquet) | Custo baixo, integração nativa com AWS |
-| **IaC** | Terraform | Infraestrutura como código, reprodutível |
 | **Containerização** | Docker + Docker Compose | Ambiente local idêntico à produção |
 | **Qualidade de Dados** | Python (quality_checker.py) | Validação customizada de duplicatas, nulos e relacionamentos |
 
@@ -115,8 +112,7 @@ Este projeto constrói uma **pipeline híbrida de dados (Batch + Streaming)** pa
 │       └── quality_checker.py        # Valida duplicatas, nulos, consistência e relacionamentos
 │
 ├── 📂 infrastructure/
-│   ├── terraform/
-│   │   └── main.tf                   # Cria bucket S3 e estrutura de pastas na AWS
+│   │
 │   └── docker/
 │       ├── Dockerfile
 │       └── docker-compose.yml
