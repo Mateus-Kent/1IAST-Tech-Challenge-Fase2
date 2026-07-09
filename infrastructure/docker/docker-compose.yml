@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  producer:
+    build:
+      context: ../../  # Aponta para a raiz do projeto
+      dockerfile: infrastructure/docker/Dockerfile
+    container_name: streaming_producer
+    command: python pipeline/streaming/producer/producer.py
+    volumes:
+      - ../../data:/app/data
+
+  consumer:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile
+    container_name: streaming_consumer
+    command: python pipeline/streaming/consumer/consumer.py
+    volumes:
+      - ../../data:/app/data
+    # Garante que o contêiner do consumidor carregue as chaves da AWS
+    env_file:
+      - ../../.env.example
+    depends_on:
+      - producer
